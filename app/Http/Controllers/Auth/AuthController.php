@@ -2,71 +2,76 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\User;
+use App\Models\User;
 use Validator;
+use Illuminate\Http\Request;
+use App\Http\Requests;
 use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Auth\ThrottlesLogins;
-use Illuminate\Foundation\Auth\AuthenticatesAndRegistersUsers;
+use Auth;
 
 class AuthController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Registration & Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles the registration of new users, as well as the
-    | authentication of existing users. By default, this controller uses
-    | a simple trait to add these behaviors. Why don't you explore it?
-    |
-    */
+  public function getLogin()
+  {
+    return view('auth.login');
+  }
 
-    use AuthenticatesAndRegistersUsers, ThrottlesLogins;
+  public function postLogin(Request $request)
+  {
+    $user = [
+      'email' => $request->input('email'),
+      'password' => $request->input('password')
+    ];
 
-    /**
-     * Where to redirect users after login / registration.
-     *
-     * @var string
-     */
-    protected $redirectTo = '/';
+    if (\Auth::attempt($user)):
+      return redirect('/')->with('success', 'Te has logueado correctamente');
+    else:
+      return back()->with('danger', 'Credenciales de acceso incorrectas')->withInput();
+    endif;
+  }
 
-    /**
-     * Create a new authentication controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        $this->middleware($this->guestMiddleware(), ['except' => 'logout']);
-    }
+  public function getLogout()
+  {
+    Auth::logout();
 
-    /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
-    protected function validator(array $data)
-    {
-        return Validator::make($data, [
-            'name' => 'required|max:255',
-            'email' => 'required|email|max:255|unique:users',
-            'password' => 'required|min:6|confirmed',
-        ]);
-    }
+    return redirect('/')->with('success', 'Has cerrado sesión correctamente');
+  }
 
-    /**
-     * Create a new user instance after a valid registration.
-     *
-     * @param  array  $data
-     * @return User
-     */
-    protected function create(array $data)
-    {
-        return User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => bcrypt($data['password']),
-        ]);
-    }
+  public function getRegister()
+  {
+    return view('auth.register');
+  }
+
+  public function postRegister(Request $request)
+  {
+    $validator = \Validator::make($request->all(), [
+      'name' => 'required',
+      'email' => 'required|unique:users,email',
+      'password' => 'required|confirmed',
+      'choices' => 'required|in:client,photograph'
+    ]);
+
+    if ($validator->passes()):
+      $user = \App\Models\User::create([
+        'name' => $request->input('name'),
+        'email' => $request->input('email'),
+        'password' => bcrypt($request->input('password')),
+        'choices' => $request->input('choices')
+      ]);
+
+      Auth::login($user);
+
+      return redirect('/')->with('success', 'Te has Registrado Correctamente');
+    else:
+      return back()->withInput()->withErrors($validator);
+    endif;
+  }
+  public function getPassword(){
+      return 'recuperar password';
+  }
+
+  public function postPassword(){
+      return 'recuperar password';
+  }
+
 }
